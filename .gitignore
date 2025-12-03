@@ -1,0 +1,37 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+venv/
+.env/
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage reports
+coverage.xml
+htmlcov/
+.coverage
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.whl
+
+# Qlty temporary files
+_temp/
+
+# Logs
+*.log
+
+# IDE/editor settings
+.vscode/
+.idea/
+
+uv.lock
+demo/
