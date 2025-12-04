@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-page-loader = "page_loader.scripts.page_loader:main"
+page-loader = "page_loader.cli:main"
 
 [build-system]
 requires = ["hatchling"]
