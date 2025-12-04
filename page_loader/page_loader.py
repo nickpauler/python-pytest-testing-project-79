@@ -7,14 +7,10 @@ from bs4 import BeautifulSoup
 
 def make_filename(url, extension=''):
     """Создает имя файла из URL (без расширения в url!)."""
-    # Убираем схему
     url_without_scheme = re.sub(r'^https?://', '', url)
-    # Заменяем все, кроме букв и цифр, на дефис
     filename = re.sub(r'[^a-zA-Z0-9]', '-', url_without_scheme)
-    # Убираем повторяющиеся дефисы и с краев
     filename = re.sub(r'-+', '-', filename).strip('-')
 
-    # Добавляем расширение
     if extension:
         return f"{filename}{extension}"
     return f"{filename}.html"
@@ -33,12 +29,13 @@ def is_local_resource(url, base_url):
     parsed_resource = urlparse(url)
     parsed_base = urlparse(base_url)
 
-    # Относительный путь - всегда локальный
     if not parsed_resource.scheme and not parsed_resource.netloc:
         return True
 
-    # Одинаковый хост = локальный
-    return parsed_resource.netloc == parsed_base.netloc
+    resource_host = parsed_resource.hostname or parsed_resource.netloc
+    base_host = parsed_base.hostname or parsed_base.netloc
+
+    return resource_host == base_host
 
 
 def download_resource(url, output_path):
@@ -58,6 +55,14 @@ def download(url, output_dir=None):
     if output_dir is None:
         output_dir = os.getcwd()
 
+    # Проверяем, что директория существует
+    if not os.path.exists(output_dir):
+        raise FileNotFoundError(f"Output directory does not exist: {output_dir}")
+
+    # Проверяем, что это именно директория, а не файл
+    if not os.path.isdir(output_dir):
+        raise NotADirectoryError(f"Output path is not a directory: {output_dir}")
+
     # Скачиваем главную страницу
     try:
         response = requests.get(url)
@@ -68,11 +73,9 @@ def download(url, output_dir=None):
     html_content = response.text
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # Создаем директорию для ресурсов
     assets_dir_name = make_dir_name(url)
     assets_dir_path = os.path.join(output_dir, assets_dir_name)
 
-    # Теги и атрибуты для поиска ресурсов
     tags_attrs = [
         ('img', 'src'),
         ('link', 'href'),
@@ -88,44 +91,33 @@ def download(url, output_dir=None):
             if not resource_url:
                 continue
 
-            # Формируем полный URL
             full_resource_url = urljoin(url, resource_url)
 
-            # Проверяем, локальный ли это ресурс
             if not is_local_resource(full_resource_url, url):
                 continue
 
-            # Создаем папку только если есть локальные ресурсы
             if not resources_downloaded:
                 os.makedirs(assets_dir_path, exist_ok=True)
                 resources_downloaded = True
 
-            # Парсим URL ресурса
             parsed = urlparse(full_resource_url)
 
-            # КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: сначала извлекаем расширение
             extension = os.path.splitext(parsed.path)[1] or ''
 
-            # Формируем путь БЕЗ расширения для обработки
             path_without_ext = os.path.splitext(parsed.path)[0]
             if parsed.query:
                 path_without_ext += '?' + parsed.query
 
-            # Собираем полный путь (хост + путь без расширения)
             full_path = parsed.netloc + path_without_ext
 
-            # Формируем имя файла
             resource_filename = make_filename(full_path, extension)
             resource_filepath = os.path.join(assets_dir_path, resource_filename)
 
-            # Скачиваем ресурс
             download_resource(full_resource_url, resource_filepath)
 
-            # Обновляем ссылку в HTML
             new_path = os.path.join(assets_dir_name, resource_filename)
             tag[attr_name] = new_path
 
-    # Сохраняем измененный HTML
     html_filename = make_filename(url)
     html_filepath = os.path.join(output_dir, html_filename)
 
