@@ -2,28 +2,28 @@
 
 # Установка зависимостей
 install:
-	uv pip install -r requirements.txt
+	pip install -r requirements.txt
+	pip install pytest-cov
 
 # Сборка пакета
 build:
-	uv pip install hatch
+	pip install hatch
 	hatch build
 
 # Установка пакета в систему
 package-install:
-	uv pip install dist/page_loader-0.1.0-py2.py3-none-any.whl
+	pip install dist/page_loader-0.1.0-py2.py3-none-any.whl
 
 # Запуск линтера
 lint:
-	uv pip install flake8
+	pip install flake8
 	flake8 page_loader tests
 
 # Запуск тестов
 test:
-	uv pip install pytest requests_mock
-	pytest
+	pytest --cov=page_loader --cov-report=xml --cov-report=term
 
 # Запуск с тестовым URL
 run:
-	uv pip install requests
+	pip install requests
 	page-loader --output . https://example.com
