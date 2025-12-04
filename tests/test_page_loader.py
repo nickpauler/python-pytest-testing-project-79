@@ -8,7 +8,6 @@ import requests_mock
 
 from page_loader.page_loader import make_filename, download
 
-# Настройка логирования для читаемого вывода
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -69,25 +68,20 @@ def test_download(temp_dir):
     expected_filename = os.path.join(temp_dir, "ru-hexlet-io-courses.html")
 
     with requests_mock.Mocker() as m:
-        m.get(url, text=test_page_text)  # Подмена запроса
+        m.get(url, text=test_page_text)
 
         logger.info("Downloading: %s", url)
         file_path = download(url, temp_dir)
         logger.info("Saved to: %s", file_path)
 
-        # Проверка, что файл создан и корректен
         assert os.path.exists(file_path)
         assert file_path == expected_filename
 
-        # Проверка содержимого файла
         with open(file_path, encoding="utf-8") as file:
             assert file.read() == test_page_text
 
-        # Проверка, что requests.get(url) был вызван ОДИН раз
         assert len(m.request_history) == 1
-        # Проверка, что запрос был сделан по нужному URL
         assert m.request_history[0].url == url
-        # Проверка, что это именно GET-запрос
         assert m.request_history[0].method == "GET"
 
 
@@ -98,7 +92,6 @@ def test_download_default_directory(temp_dir, monkeypatch):
 
     expected_filename = "ru-hexlet-io-courses.html"
 
-    # Меняем текущую директорию на временную
     old_cwd = os.getcwd()
     os.chdir(temp_dir)
 
@@ -109,7 +102,6 @@ def test_download_default_directory(temp_dir, monkeypatch):
             logger.info("Downloading with default directory: %s", url)
             file_path = download(url)
 
-            # Путь должен указывать на файл внутри temp_dir
             assert os.path.exists(file_path)
             expected_path = os.path.join(temp_dir, expected_filename)
             assert os.path.realpath(file_path) == os.path.realpath(expected_path)
@@ -118,9 +110,22 @@ def test_download_default_directory(temp_dir, monkeypatch):
             with open(file_path, encoding="utf-8") as file:
                 assert file.read() == test_page_text
 
-            # Проверяем сетевой вызов
             assert len(m.request_history) == 1
             assert m.request_history[0].url == url
             assert m.request_history[0].method == "GET"
     finally:
         os.chdir(old_cwd)
+
+def test_storage_errors_not_directory(temp_dir):
+    """output_dir указывает на файл, а не директорию — ожидаем NotADirectoryError"""
+    url = "https://site.com/blog/about"
+
+    file_path = os.path.join(temp_dir, "not_a_dir.txt")
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write("data")
+
+    with requests_mock.Mocker() as m:
+        m.get(url, text="<html></html>")
+
+        with pytest.raises(NotADirectoryError):
+            download(url, file_path)
