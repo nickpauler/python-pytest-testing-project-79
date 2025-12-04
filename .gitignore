@@ -22,6 +22,7 @@ dist/
 build/
 *.egg-info/
 *.whl
+*.DS_Store
 
 # Qlty temporary files
 _temp/
